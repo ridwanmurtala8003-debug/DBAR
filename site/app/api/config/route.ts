@@ -1,17 +1,21 @@
 import { NextResponse } from "next/server";
-import { readFile, writeFile } from "fs/promises";
-import { join } from "path";
+import { getStore } from "@netlify/blobs";
 
-const file = join(process.cwd(), "data", "config.json");
+function store() {
+  return getStore({ name: "config", consistency: "strong" });
+}
 
 export async function GET() {
-  const data = JSON.parse(await readFile(file, "utf-8"));
-  return NextResponse.json(data);
+  try {
+    const mint = await (await store()).get("mint") || "";
+    return NextResponse.json({ mint });
+  } catch {
+    return NextResponse.json({ mint: "" });
+  }
 }
 
 export async function POST(req: Request) {
   const { mint } = await req.json();
-  const data = { mint: mint || "" };
-  await writeFile(file, JSON.stringify(data));
-  return NextResponse.json(data);
+  await (await store()).set("mint", mint || "");
+  return NextResponse.json({ mint: mint || "" });
 }
